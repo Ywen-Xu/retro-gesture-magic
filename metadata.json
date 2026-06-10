@@ -1,0 +1,6 @@
+{
+  "name": "Retro Gesture Magic",
+  "description": "A retro Y2K-style interactive webcam filter app that triggers a romantic pink heart with hand gestures, explosions with hand crossings, and classic disco bangers!",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

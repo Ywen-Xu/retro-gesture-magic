@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "PowerShell(npx vercel --version 2>$null)",
+      "PowerShell(npx serve dist --listen 4000 --no-clipboard)",
+      "PowerShell(npx --no-install vite preview --port 4000 --host 0.0.0.0)",
+      "PowerShell(npx vercel deploy --prod --yes dist 2>&1)",
+      "Bash(npx surge *)",
+      "PowerShell(gh --version 2>&1)",
+      "Bash(npx localtunnel *)",
+      "PowerShell(python --version 2>&1)",
+      "Bash(ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R 80:localhost:4000 nokey@localhost.run)",
+      "Bash(git init *)",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \".github\\\\workflows\")",
+      "Bash(git add *)"
+    ]
+  }
+}
