@@ -638,8 +638,8 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
           const targetY = midIndexY * canvas.height;
 
           if (activeStyle === 'retro_stars') {
-            // Emits 3 stars/frame
-            for (let i = 0; i < 3; i++) {
+            // Emits 12 stars/frame (compensates ~8fps detection)
+            for (let i = 0; i < 12; i++) {
               particlesRef.current.push({
                 id: Math.random().toString(),
                 x: targetX,
@@ -660,8 +660,8 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
               spawnEdgeSparkle();
             }
           } else if (activeStyle === 'heart_bubbles') {
-            // Emits 2 bubbles/frame
-            for (let i = 0; i < 2; i++) {
+            // Emits 8 bubbles/frame (compensates ~8fps detection)
+            for (let i = 0; i < 8; i++) {
               particlesRef.current.push({
                 id: Math.random().toString(),
                 x: targetX + (Math.random() - 0.5) * 15,
@@ -810,7 +810,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
           const targetY = fingertip.y * canvas.height;
 
           // Spawn 2-3 glowing diamonds per frame at fingertip
-          const count = 2 + Math.floor(Math.random() * 2);
+          const count = 8 + Math.floor(Math.random() * 5); // 8-12 diamonds (compensates ~8fps)
           for (let i = 0; i < count; i++) {
             particlesRef.current.push({
               id: Math.random().toString(),
@@ -932,8 +932,8 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
       ? ['#39ff14', '#22c55e', '#a3e635', '#00ffcc', '#ffffff']
       : ['#ff00ff', '#ff66cc', '#ff80df', '#00ffff', '#fffdd0'];
 
-    // Populate large count (50) of floating small heart particles bursting in 360 degrees
-    for (let i = 0; i < 50; i++) {
+    // Populate 80 heart particles bursting in 360 degrees
+    for (let i = 0; i < 80; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = 3.5 + Math.random() * 9.5;
       particlesRef.current.push({
@@ -987,7 +987,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
 
     // Populate lots of retro star sparkles & small cute heart chunks
     const colors = ['#ff007f', '#00f3ff', '#d500f9', '#ff80df', '#facc15', '#fffdd0', '#3b82f6'];
-    const pCount = 95;
+    const pCount = 120; // boosted for richer visual
 
     for (let i = 0; i < pCount; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -1148,7 +1148,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
     }
     ctx.closePath();
     ctx.fillStyle = color;
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = isMobile ? 0 : 8;
     ctx.shadowColor = color;
     ctx.fill();
     ctx.restore();
@@ -1245,8 +1245,8 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
           }
         }
         ctx.fillStyle = balloonGrad;
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = currentRatio >= 0.8 
+        ctx.shadowBlur = isMobile ? 0 : 20;
+        ctx.shadowColor = currentRatio >= 0.8
           ? (isGreen ? '#facc15' : '#ef4444') 
           : (isGreen ? '#39ff14' : '#ff00aa');
         ctx.fill();
@@ -1304,7 +1304,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
     ctx.arc(0, 0, baseSize * 0.95 * pulse, 0, Math.PI * 2);
     ctx.strokeStyle = 'rgba(236, 72, 153, 0.45)';
     ctx.lineWidth = 4;
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = isMobile ? 0 : 15;
     ctx.shadowColor = '#ec4899';
     ctx.stroke();
 
@@ -1321,7 +1321,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
     ctx.closePath();
 
     ctx.fillStyle = '#ff007f'; // Rose Pink!
-    ctx.shadowBlur = 35;
+    ctx.shadowBlur = isMobile ? 0 : 35;
     ctx.shadowColor = '#f43f5e';
     ctx.fill();
 
@@ -1334,7 +1334,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
     // Sparkle text banner above heart
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 12px "Share Tech Mono", monospace';
-    ctx.shadowBlur = 4;
+    ctx.shadowBlur = isMobile ? 0 : 4;
     ctx.shadowColor = '#000000';
     ctx.textAlign = 'center';
     ctx.fillText('じ☆ve 暃主流 じ☆ve', 0, -size/1.5);
@@ -1409,7 +1409,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
         const r = p.size;
         
         // Shadow glow
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = isMobile ? 0 : 10;
         ctx.shadowColor = p.color;
 
         // Outer transparent glossy ring
@@ -1446,7 +1446,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
         ctx.lineTo(-p.size * 0.65, 0);
         ctx.closePath();
         ctx.fillStyle = p.color;
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = isMobile ? 0 : 8;
         ctx.shadowColor = p.color;
         ctx.fill();
       } else if (p.type === 'ring') {
@@ -1454,7 +1454,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
         ctx.arc(0, 0, p.size, 0, Math.PI * 2);
         ctx.strokeStyle = p.color;
         ctx.lineWidth = 3;
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = isMobile ? 0 : 12;
         ctx.shadowColor = p.color;
         ctx.stroke();
       } else { // heart chunk particle
@@ -1467,7 +1467,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
         ctx.bezierCurveTo(s, -s / 3, s / 2, -s * 3/4, 0, -s / 4);
         ctx.closePath();
         ctx.fillStyle = p.color;
-        ctx.shadowBlur = 6;
+        ctx.shadowBlur = isMobile ? 0 : 6;
         ctx.shadowColor = p.color;
         ctx.fill();
       }
