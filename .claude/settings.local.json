@@ -19,7 +19,10 @@
       "PowerShell(git config --global --get https.proxy)",
       "PowerShell($env:HTTP_PROXY)",
       "PowerShell($env:HTTPS_PROXY)",
-      "Bash(npx --no-install vite build)"
+      "Bash(npx --no-install vite build)",
+      "Bash(git push *)",
+      "Bash(git rm *)",
+      "Bash(git commit *)"
     ]
   }
 }

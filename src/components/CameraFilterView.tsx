@@ -2069,10 +2069,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
           {/* Scanline highlighter laser active */}
           <div className="absolute w-full h-[2px] bg-[#00ffff]/40 top-0 shadow-[0_0_10px_#00ffff] pointer-events-none z-20" style={{ animation: 'scanline 4s linear infinite' }} />
 
-          {/* White camera snapshot flash overlay */}
-          <div className={`absolute inset-0 bg-white z-40 transition-opacity duration-300 pointer-events-none ${
-            strobeActive ? 'opacity-90' : 'opacity-0'
-          }`} />
+          {/* White flash overlay removed — border pulse instead */}
 
           {/* WATERMARK BACKGROUND IN TEXT DECORATION */}
           <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none select-none">
