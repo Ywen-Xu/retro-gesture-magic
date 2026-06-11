@@ -112,6 +112,17 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
   useEffect(() => {
     sfxMutedRef.current = sfxMuted;
   }, [sfxMuted]);
+
+  // ── Auto-photo on stillness ──
+  const [autoPhotoEnabled, setAutoPhotoEnabled] = useState(false);
+  const autoPhotoRef = useRef(false);
+  useEffect(() => { autoPhotoRef.current = autoPhotoEnabled; }, [autoPhotoEnabled]);
+  const stillSinceRef = useRef(0);       // timestamp when stillness began
+  const lastAutoTimeRef = useRef(0);     // timestamp of last auto-capture
+  const lastPalmPosRef = useRef<{ x: number; y: number } | null>(null);
+  const STILL_TOLERANCE = 0.015;         // ~10px at 640 width
+  const STILL_DURATION_MS = 1500;        // 1.5s still to trigger
+  const AUTO_COOLDOWN_MS = 3000;         // 3s between captures
   const [tempoMultiplier, setTempoMultiplier] = useState(1.0);
   const [snapshotPreviewUrl, setSnapshotPreviewUrl] = useState<string | null>(null);
 
@@ -855,6 +866,36 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
     } else {
       updateActiveGesture('none');
       synth.setFiltersInteractive(false);
+    }
+
+    // ── Auto-photo: detect stillness ──
+    if (autoPhotoRef.current && cameraActiveRef.current && landmarksList.length > 0) {
+      // Calculate centroid of all detected palm positions (landmark 9 = middle finger MCP)
+      let sumX = 0, sumY = 0;
+      landmarksList.forEach((lm: any) => { sumX += lm[9].x; sumY += lm[9].y; });
+      const cx = sumX / landmarksList.length;
+      const cy = sumY / landmarksList.length;
+
+      const prev = lastPalmPosRef.current;
+      if (prev) {
+        const dist = Math.hypot(cx - prev.x, cy - prev.y);
+        const now = Date.now();
+        if (dist < STILL_TOLERANCE) {
+          if (stillSinceRef.current === 0) {
+            stillSinceRef.current = now;
+          } else if ((now - stillSinceRef.current) >= STILL_DURATION_MS && (now - lastAutoTimeRef.current) >= AUTO_COOLDOWN_MS) {
+            lastAutoTimeRef.current = now;
+            stillSinceRef.current = 0;
+            takeSnapshot(); // trigger the existing snapshot function
+          }
+        } else {
+          stillSinceRef.current = 0; // moved too much, reset timer
+        }
+      }
+      lastPalmPosRef.current = { x: cx, y: cy };
+    } else {
+      stillSinceRef.current = 0;
+      lastPalmPosRef.current = null;
     }
 
     lastGestureRef.current = activeGestureRef.current;
@@ -2384,15 +2425,18 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
               <Trash2 className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setSfxMuted(!sfxMuted)}
+              onClick={() => setAutoPhotoEnabled(!autoPhotoEnabled)}
+              disabled={!cameraActive}
               className={`p-2.5 border-2 rounded-xl transition cursor-pointer ${
-                sfxMuted
-                  ? 'border-red-500/50 hover:border-red-500 bg-red-950/20 text-red-400 hover:text-red-300'
-                  : 'border-[#00ffff]/40 hover:border-[#00ffff] bg-[#1a052e] text-[#00ffff] hover:text-white animate-pulse-slow'
+                !cameraActive
+                  ? 'opacity-30 cursor-not-allowed border-stone-800 bg-stone-900 text-stone-500'
+                  : autoPhotoEnabled
+                    ? 'border-[#00ff88]/60 bg-[#00ff88]/15 text-[#00ff88] shadow-[0_0_12px_rgba(0,255,136,0.3)] animate-pulse'
+                    : 'border-[#ff00ff]/40 hover:border-[#ff00ff] bg-[#1a052e] text-[#ff00ff] hover:text-white'
               }`}
-              title={sfxMuted ? "開啟音效 / 音樂" : "關閉音效 / 音樂"}
+              title={autoPhotoEnabled ? '自動拍照中：保持靜止 1.5 秒即自動拍攝' : '開啟自動拍照'}
             >
-              {sfxMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              <Camera className="w-4 h-4" />
             </button>
           </div>
 
