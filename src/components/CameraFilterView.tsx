@@ -92,8 +92,8 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
     if (typeof navigator === 'undefined') return false;
     return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
   }, []);
-  const MAX_PARTICLES = isMobile ? 80 : 250;
-  const MP_SKIP_FRAMES = 4; // throttle MediaPipe to ~8fps (30fps / 4 ≈ 7.5)
+  const MAX_PARTICLES = isMobile ? 30 : 250;
+  const MP_SKIP_FRAMES = isMobile ? 6 : 4; // mobile: 5fps  desktop: 8fps
 
   // App States
   const [cameraActive, setCameraActive] = useState(false);
@@ -638,8 +638,8 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
           const targetY = midIndexY * canvas.height;
 
           if (activeStyle === 'retro_stars') {
-            // Emits 12 stars/frame (compensates ~8fps detection)
-            for (let i = 0; i < 12; i++) {
+            // Stars: 4 mobile / 12 desktop
+            for (let i = 0; i < (isMobile ? 4 : 12); i++) {
               particlesRef.current.push({
                 id: Math.random().toString(),
                 x: targetX,
@@ -660,8 +660,8 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
               spawnEdgeSparkle();
             }
           } else if (activeStyle === 'heart_bubbles') {
-            // Emits 8 bubbles/frame (compensates ~8fps detection)
-            for (let i = 0; i < 8; i++) {
+            // Bubbles: 3 mobile / 8 desktop
+            for (let i = 0; i < (isMobile ? 3 : 8); i++) {
               particlesRef.current.push({
                 id: Math.random().toString(),
                 x: targetX + (Math.random() - 0.5) * 15,
@@ -810,7 +810,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
           const targetY = fingertip.y * canvas.height;
 
           // Spawn 2-3 glowing diamonds per frame at fingertip
-          const count = 8 + Math.floor(Math.random() * 5); // 8-12 diamonds (compensates ~8fps)
+          const count = isMobile ? (2 + Math.floor(Math.random() * 2)) : (8 + Math.floor(Math.random() * 5));
           for (let i = 0; i < count; i++) {
             particlesRef.current.push({
               id: Math.random().toString(),
@@ -932,8 +932,8 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
       ? ['#39ff14', '#22c55e', '#a3e635', '#00ffcc', '#ffffff']
       : ['#ff00ff', '#ff66cc', '#ff80df', '#00ffff', '#fffdd0'];
 
-    // Populate 80 heart particles bursting in 360 degrees
-    for (let i = 0; i < 80; i++) {
+    // Heart particles: 30 mobile / 80 desktop
+    for (let i = 0; i < (isMobile ? 30 : 80); i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = 3.5 + Math.random() * 9.5;
       particlesRef.current.push({
@@ -987,7 +987,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
 
     // Populate lots of retro star sparkles & small cute heart chunks
     const colors = ['#ff007f', '#00f3ff', '#d500f9', '#ff80df', '#facc15', '#fffdd0', '#3b82f6'];
-    const pCount = 120; // boosted for richer visual
+    const pCount = isMobile ? 50 : 120;
 
     for (let i = 0; i < pCount; i++) {
       const angle = Math.random() * Math.PI * 2;
