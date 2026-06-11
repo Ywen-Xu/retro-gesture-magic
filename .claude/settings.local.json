@@ -13,7 +13,13 @@
       "Bash(ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R 80:localhost:4000 nokey@localhost.run)",
       "Bash(git init *)",
       "PowerShell(New-Item -ItemType Directory -Force -Path \".github\\\\workflows\")",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m '@ *)",
+      "PowerShell(git config --global --get http.proxy)",
+      "PowerShell(git config --global --get https.proxy)",
+      "PowerShell($env:HTTP_PROXY)",
+      "PowerShell($env:HTTPS_PROXY)",
+      "Bash(npx --no-install vite build)"
     ]
   }
 }

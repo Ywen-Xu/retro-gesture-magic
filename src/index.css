@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Global font scale — bump base size for better readability */
+html {
+  font-size: 17px;
+}
+
 @theme {
   --font-sans: "Inter", "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Share Tech Mono", "JetBrains Mono", SFMono-Regular, monospace;

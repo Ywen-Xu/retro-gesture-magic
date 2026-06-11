@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { Camera, Music, Play, Square, Sparkles, Volume2, VolumeX, Heart, Trash2, CameraOff, Shuffle, RotateCcw, Image as ImageIcon } from 'lucide-react';
+import { Camera, Music, Play, Square, Sparkles, Volume2, VolumeX, Heart, Trash2, CameraOff, Shuffle, RotateCcw, Image as ImageIcon, HelpCircle, Flame, Disc } from 'lucide-react';
 import { RetroFilterType, Particle, Y2KSticker, SparkleEdge } from '../types';
 import { RetroDiscoSynth } from '../utils/RetroDiscoSynth';
 
@@ -89,6 +89,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
   
   // App States
   const [cameraActive, setCameraActive] = useState(false);
+  const [showHowTo, setShowHowTo] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState<RetroFilterType>('dreamy-pink');
   const [filterIntensity, setFilterIntensity] = useState(1.0);
   const filterIntensityRef = useRef(1.0);
@@ -2014,7 +2015,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
           
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 px-3 py-1 bg-[#0d0216]/80 rounded-full border-2 border-[#ff00ff]/30 text-[10px] font-mono text-[#ff00ff]">
-              <span className="text-[9px] text-[#00ffff] animate-ping">●</span>
+              <span className="text-[10px] text-[#00ffff] animate-ping">●</span>
               <span>FEED GESTURE:</span>
               <span className={`font-black uppercase tracking-wider ${
                 activeGesture === 'heart' ? 'text-[#ff00ff] blink-text-effect' : activeGesture === 'explosion' ? 'text-[#00ffff] font-extrabold animate-bounce' : 'text-stone-500'
@@ -2135,7 +2136,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
                         setStickers(prev => prev.filter(s => s.id !== sticker.id));
                         setSelectedStickerId(null);
                       }}
-                      className="absolute -top-3.5 -left-3.5 w-[22px] h-[22px] flex items-center justify-center bg-rose-600 border border-white text-white text-[9px] font-black rounded-full transition cursor-pointer shadow-[0_0_8px_rgba(225,29,72,0.6)] hover:bg-rose-700 pointer-events-auto z-40 active:scale-90"
+                      className="absolute -top-3.5 -left-3.5 w-[22px] h-[22px] flex items-center justify-center bg-rose-600 border border-white text-white text-[10px] font-black rounded-full transition cursor-pointer shadow-[0_0_8px_rgba(225,29,72,0.6)] hover:bg-rose-700 pointer-events-auto z-40 active:scale-90"
                       title="刪除"
                     >
                       ✕
@@ -2352,7 +2353,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
               </span>
               <button 
                 onClick={() => setFolderConfigOpen(false)}
-                className="text-stone-400 hover:text-white font-mono text-[9px] cursor-pointer"
+                className="text-stone-400 hover:text-white font-mono text-[10px] cursor-pointer"
               >
                 [ ✕ 關閉 ]
               </button>
@@ -2414,9 +2415,14 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
         )}
       </div>
 
+      {/* RIGHT SIDEBAR AREA: two columns + manual grimoire below */}
+      <div className="flex flex-col gap-3.5 w-full lg:w-auto shrink-0">
+        {/* TOP ROW: two control columns side by side */}
+        <div className="flex flex-col lg:flex-row gap-3.5">
+
       {/* RIGHT COLUMN 1: High-vibe webcam control and decoration console in Vibrant Palette */}
       <div
-        className="flex flex-col gap-3.5 w-full lg:w-[300px] shrink-0 text-stone-200 sidebar-scroll lg:pr-1"
+        className="flex flex-col gap-3.5 w-full lg:w-[290px] shrink-0 text-stone-200 sidebar-scroll lg:pr-1"
         style={{ maxHeight: 'calc(100vh - 8rem)', overflowY: 'auto', overscrollBehavior: 'contain' }}
       >
         {/* PANEL 1: PHOTO FILTER AND DECORATIVE FRAME */}
@@ -2435,7 +2441,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
 
           {/* FILTER LIST */}
           <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-black text-[#00ffff] uppercase tracking-widest">
+            <label className="text-[10px] font-black text-[#00ffff] uppercase tracking-widest">
               非主流。色彩濾鏡
             </label>
             <div className="grid grid-cols-2 gap-1">
@@ -2486,7 +2492,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
 
           {/* PHOTO FRAME LIST */}
           <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-black text-[#00ffff] uppercase tracking-widest">
+            <label className="text-[10px] font-black text-[#00ffff] uppercase tracking-widest">
               大頭貼。美化相框
             </label>
             <div className="grid grid-cols-2 gap-1">
@@ -2531,7 +2537,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-black text-[#00ffff] uppercase tracking-widest">
+            <label className="text-[10px] font-black text-[#00ffff] uppercase tracking-widest">
               手勢觸發。特效主題
             </label>
             <div className="grid grid-cols-2 gap-1 font-sans">
@@ -2563,7 +2569,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
             </div>
             
             {/* Show only active style description */}
-            <p className="text-[8.5px] text-stone-400 font-mono text-center leading-none mt-1">
+            <p className="text-[10px] text-stone-400 font-mono text-center leading-none mt-1">
               {(() => {
                 if (activeEffectStyle === 'retro_stars') return '✨ 說明: 雙手靠近時散發粉彩碎星';
                 if (activeEffectStyle === 'heart_bubbles') return '🫧 說明: 手掌中漂浮上升亮麗心形氣泡';
@@ -2575,11 +2581,11 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
             {/* Balloon Color Toggle Option */}
             {activeEffectStyle === 'love_balloon' && (
               <div className="flex items-center justify-between gap-1 mt-1 p-1 bg-[#120422] rounded border border-[#ff00ff]/10">
-                <span className="text-[9px] font-bold text-stone-300">🎈 氣球顏色:</span>
+                <span className="text-[10px] font-bold text-stone-300">🎈 氣球顏色:</span>
                 <div className="flex gap-1">
                   <button
                     onClick={() => setBalloonColor('pink')}
-                    className={`px-2 py-0.5 rounded text-[8.5px] cursor-pointer font-bold transition ${
+                    className={`px-2 py-0.5 rounded text-[10px] cursor-pointer font-bold transition ${
                       balloonColor === 'pink'
                         ? 'bg-pink-600 text-white border border-[#ff00ff] shadow-[0_0_6px_rgba(255,0,255,0.4)]'
                         : 'bg-[#0d0216] text-stone-400 border border-[#ff00ff]/20 hover:text-white'
@@ -2589,7 +2595,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
                   </button>
                   <button
                     onClick={() => setBalloonColor('green')}
-                    className={`px-2 py-0.5 rounded text-[8.5px] cursor-pointer font-bold transition ${
+                    className={`px-2 py-0.5 rounded text-[10px] cursor-pointer font-bold transition ${
                       balloonColor === 'green'
                         ? 'bg-emerald-600 text-white border border-[#22c55e] shadow-[0_0_6px_rgba(34,197,94,0.4)]'
                         : 'bg-[#0d0216] text-stone-400 border border-[#22c55e]/20 hover:text-white'
@@ -2604,7 +2610,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
 
           {/* Balloon active Live Meter progress indicators */}
           {activeEffectStyle === 'love_balloon' && (
-            <div className={`bg-[#0d0216] p-1.5 rounded-lg border ${balloonColor === 'green' ? 'border-[#22c55e]/20' : 'border-[#ff00ff]/20'} text-[9px] space-y-0.5`}>
+            <div className={`bg-[#0d0216] p-1.5 rounded-lg border ${balloonColor === 'green' ? 'border-[#22c55e]/20' : 'border-[#ff00ff]/20'} text-[10px] space-y-0.5`}>
               <div className="flex justify-between font-mono">
                 <span className={balloonColor === 'green' ? 'text-[#22c55e]' : 'text-[#ff00ff]'}>BALLOON VALUE:</span>
                 <span className="font-black text-[#00ffff]">{balloonProgressPercent.toFixed(0)}%</span>
@@ -2619,7 +2625,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
                   style={{ width: `${balloonProgressPercent}%` }}
                 />
               </div>
-              <p className="text-[8px] text-stone-400 font-mono text-center leading-none">
+              <p className="text-[9px] text-stone-400 font-mono text-center leading-none">
                 {balloonProgressPercent >= 100 ? '💥 BOOM! BALLOON POPPED!' : '合攏雙手，吹大氣球吧！'}
               </p>
             </div>
@@ -2629,7 +2635,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
 
       {/* RIGHT COLUMN 2: Stickers & Music — 獨立右側豎列 */}
       <div
-        className="flex flex-col gap-3.5 w-full lg:w-[300px] shrink-0 text-stone-200 sidebar-scroll lg:pr-1"
+        className="flex flex-col gap-3.5 w-full lg:w-[290px] shrink-0 text-stone-200 sidebar-scroll lg:pr-1"
         style={{ maxHeight: 'calc(100vh - 8rem)', overflowY: 'auto', overscrollBehavior: 'contain' }}
       >
         {/* PANEL 2: STAMP STICKERS DECORATION BOX */}
@@ -2648,7 +2654,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
 
           {/* PRESENTS EMOJIS */}
           <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-black text-[#00ffff] uppercase tracking-widest">
+            <label className="text-[10px] font-black text-[#00ffff] uppercase tracking-widest">
               貼上經典。大頭貼貼圖
             </label>
             <div className="grid grid-cols-4 gap-1.5">
@@ -2671,7 +2677,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
           {/* RETRO PIXEL DRAWER */}
           <div className="flex flex-col gap-1.5 mt-0.5 pt-1.5 border-t border-[#ff00ff]/20">
             <div className="flex items-center justify-between">
-              <label className="text-[9px] font-black text-[#00ffff] uppercase tracking-widest flex items-center gap-1">
+              <label className="text-[10px] font-black text-[#00ffff] uppercase tracking-widest flex items-center gap-1">
                 <span>🖌️ Y2K 像素塗鴉畫筆</span>
               </label>
               {Object.keys(drawnPixels).length > 0 && (
@@ -2680,7 +2686,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
                     drawnPixelsRef.current = {};
                     setDrawnPixels({});
                   }}
-                  className="text-[9px] font-bold text-rose-400 hover:text-rose-300 transition underline cursor-pointer"
+                  className="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition underline cursor-pointer"
                   title="清空畫布上的塗鴉"
                 >
                   🧹 清除全部
@@ -2708,7 +2714,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
               <div className="flex flex-col gap-2 p-2 bg-[#0d0216]/50 rounded-xl border border-[#ff00ff]/10 animate-fade-in">
                 {/* 1. Color Swatches */}
                 <div className="flex flex-col gap-1">
-                  <span className="text-[8px] font-black text-pink-300 uppercase">1. 選擇畫筆顏色</span>
+                  <span className="text-[9px] font-black text-pink-300 uppercase">1. 選擇畫筆顏色</span>
                   <div className="flex flex-wrap gap-1">
                     {[
                       { color: '#ff00ff', label: '粉' },
@@ -2725,7 +2731,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
                         <button
                           key={swatch.color}
                           onClick={() => setDrawColor(swatch.color)}
-                          className={`w-6 h-6 rounded flex items-center justify-center text-[9px] font-black border transition-all cursor-pointer ${
+                          className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-black border transition-all cursor-pointer ${
                             isActive
                               ? 'border-white scale-110 shadow-[0_0_6px_rgba(255,255,255,0.8)]'
                               : 'border-white/10 hover:scale-105 hover:border-white/40'
@@ -2747,7 +2753,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
                           drawnPixelsRef.current = {};
                           setDrawnPixels({});
                         }}
-                        className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-black border border-red-500/40 bg-red-950/30 text-red-400 hover:bg-red-600 hover:text-white hover:border-red-400 transition-all cursor-pointer active:scale-90"
+                        className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-black border border-red-500/40 bg-red-950/30 text-red-400 hover:bg-red-600 hover:text-white hover:border-red-400 transition-all cursor-pointer active:scale-90"
                         title="清除全部像素畫"
                       >
                         🧹
@@ -2758,7 +2764,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
 
                 {/* 2. Grid cell size selection */}
                 <div className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-[8px] font-black text-[#00ffff] uppercase font-bold">
+                  <div className="flex items-center justify-between text-[9px] font-black text-[#00ffff] uppercase font-bold">
                     <span>2. 像素格子大小</span>
                     <span className="font-mono text-yellow-300">{pixelSize}px</span>
                   </div>
@@ -2771,7 +2777,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
                     onChange={(e) => setPixelSize(parseInt(e.target.value, 10))}
                     className="w-full accent-[#00ffff] h-1 bg-[#0d0216] rounded-md appearance-none cursor-pointer"
                   />
-                  <div className="flex justify-between text-[8px] text-stone-400">
+                  <div className="flex justify-between text-[9px] text-stone-400">
                     <button onClick={() => setPixelSize(8)} className="hover:text-white">細 (8px)</button>
                     <button onClick={() => setPixelSize(16)} className="hover:text-white">中 (16px)</button>
                     <button onClick={() => setPixelSize(24)} className="hover:text-white">粗 (24px)</button>
@@ -2779,7 +2785,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
                   </div>
                 </div>
 
-                <div className="text-[8px] font-mono text-center text-stone-400 bg-black/40 py-1 rounded">
+                <div className="text-[9px] font-mono text-center text-stone-400 bg-black/40 py-1 rounded">
                   💡 畫筆模式下，在外部相機畫面上拖曳/滑動即可繪圖作畫
                 </div>
               </div>
@@ -2807,7 +2813,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
               </div>
               <div className="flex flex-col truncate">
                 <span className="text-[10px] font-black text-white truncate">復古慢搖 8-Bit Synth</span>
-                <span className="text-[8px] text-stone-400 font-mono">128 BPM Loop</span>
+                <span className="text-[9px] text-stone-400 font-mono">128 BPM Loop</span>
               </div>
             </div>
 
@@ -2867,6 +2873,98 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
             />
           </div>
         </div>
+      </div>
+      </div>
+
+        {/* GESTURE MANUAL GRIMOIRE — 手勢秘笈 (below both sidebar columns) */}
+        {showHowTo && (
+          <div
+            className="w-full transition-all"
+            style={{ animation: 'fadeIn 0.6s ease-out' }}
+          >
+            <div className="bg-[#1a052e]/95 border-2 border-[#ff00ff] rounded-2xl p-4 shadow-[0_0_20px_rgba(255,0,255,0.12)] relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-t from-[#ff00ff11] to-transparent pointer-events-none" />
+
+              <div className="flex items-center justify-between border-b border-[#ff00ff]/30 pb-2 mb-3">
+                <div className="flex items-center gap-1.5 text-[#00ffff]">
+                  <HelpCircle className="w-4 h-4" />
+                  <h4
+                    className="font-black text-sm text-white tracking-wider"
+                    style={{ fontFamily: '"ZCOOL KuaiLe", sans-serif' }}
+                  >
+                    ★ 手勢操作秘笈
+                  </h4>
+                </div>
+                <button
+                  onClick={() => setShowHowTo(false)}
+                  className="bg-[#ff00ff] text-white hover:bg-[#00ffff] hover:text-black font-black text-xs px-2.5 py-0.5 skew-x-[-8deg] transition cursor-pointer rounded"
+                >
+                  ✕ 隱藏
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-2 text-stone-300">
+                <div className="flex gap-2.5 bg-[#0d0216]/60 p-2.5 rounded-xl border border-[#ff00ff]/20">
+                  <div className="flex items-center justify-center p-2 h-9 w-9 shrink-0 bg-[#ff00ff]/10 border border-[#ff00ff]/50 rounded-lg text-[#ff00ff]">
+                    <Heart className="w-4 h-4 fill-current animate-pulse" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <h4 className="font-bold text-white text-xs">01. 💗 掌心召喚・愛心浮現</h4>
+                    <p className="leading-relaxed text-stone-400 text-[11px]">
+                      雙手<strong className="text-[#ff00ff]">掌根並攏</strong> + <strong className="text-[#00ffff]">手指全張開</strong>，掌心間誕生超大粉紅愛心！
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 bg-[#0d0216]/60 p-2.5 rounded-xl border border-[#ff00ff]/20">
+                  <div className="flex items-center justify-center p-2 h-9 w-9 shrink-0 bg-[#00ffff]/10 border border-[#00ffff]/50 rounded-lg text-[#00ffff]">
+                    <Flame className="w-4 h-4 animate-bounce" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <h4 className="font-bold text-white text-xs">02. ✵ 雙手交叉・璀璨爆炸</h4>
+                    <p className="leading-relaxed text-stone-400 text-[11px]">
+                      兩手<strong className="text-[#00ffff]">交叉重合或觸碰</strong>即引爆數百閃亮碎片！
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 bg-[#0d0216]/60 p-2.5 rounded-xl border border-[#ff00ff]/20">
+                  <div className="flex items-center justify-center p-2 h-9 w-9 shrink-0 bg-yellow-500/10 border border-yellow-500/50 rounded-lg text-yellow-400">
+                    <Disc className="w-4 h-4 animate-spin" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <h4 className="font-bold text-white text-xs">03. 🎨 貼圖點綴・大頭貼秀</h4>
+                    <p className="leading-relaxed text-stone-400 text-[11px]">
+                      右鍵拖曳 Y2K 貼圖、火星文字，<strong className="text-[#00ffff]">滑動縮放旋轉</strong>後拍照存檔！
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 bg-[#0d0216]/60 p-2.5 rounded-xl border border-[#ff00ff]/20">
+                  <div className="flex items-center justify-center p-2 h-9 w-9 shrink-0 bg-purple-500/10 border border-purple-400/50 rounded-lg text-purple-400">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <h4 className="font-bold text-white text-xs">04. 💎 單指伸・碎鑽跟隨</h4>
+                    <p className="leading-relaxed text-stone-400 text-[11px]">
+                      選「碎鑽」模式後<strong className="text-[#c4b5fd]">伸出一根手指</strong>，指尖綻放流光碎鑽！
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!showHowTo && (
+          <button
+            onClick={() => setShowHowTo(true)}
+            className="w-full py-2 border border-dashed border-[#ff00ff]/40 bg-[#1a052e]/60 hover:border-[#ff00ff] rounded-xl text-stone-400 hover:text-white text-xs font-mono cursor-pointer transition flex items-center justify-center gap-1.5"
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-[#00ffff]" />
+            顯示手勢魔法秘笈
+          </button>
+        )}
       </div>
 
       {/* PHOTO SNAPSHOT PREVIEW MODAL */}
