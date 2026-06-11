@@ -1507,19 +1507,41 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
   };
 
   const isPaintingRef = useRef(false);
+  const lastPaintPosRef = useRef<{ x: number; y: number } | null>(null);
 
-  const paintPixelAt = (clientX: number, clientY: number) => {
-    const coords = getCanvasCoords(clientX, clientY);
-    const x = coords.x;
-    const y = coords.y;
-    
-    if (x < 0 || x >= 640 || y < 0 || y >= 480) return;
-
+  // Bresenham line interpolation to fill gaps between fast mouse moves
+  const paintLineBetween = (fromX: number, fromY: number, toX: number, toY: number) => {
     const size = pixelSize;
-    const xAlign = Math.floor(x / size) * size;
-    const yAlign = Math.floor(y / size) * size;
-    const key = `${xAlign},${yAlign}`;
+    // Work in grid-aligned coordinates
+    const x0 = Math.floor(fromX / size);
+    const y0 = Math.floor(fromY / size);
+    const x1 = Math.floor(toX / size);
+    const y1 = Math.floor(toY / size);
 
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1;
+    const sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
+
+    let cx = x0;
+    let cy = y0;
+
+    while (true) {
+      const px = cx * size;
+      const py = cy * size;
+      if (px >= 0 && px < 640 && py >= 0 && py < 480) {
+        placePixel(px, py, size);
+      }
+      if (cx === x1 && cy === y1) break;
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; cx += sx; }
+      if (e2 < dx) { err += dx; cy += sy; }
+    }
+  };
+
+  const placePixel = (xAlign: number, yAlign: number, size: number) => {
+    const key = `${xAlign},${yAlign}`;
     const newPixels = { ...drawnPixelsRef.current };
 
     if (drawColor === 'eraser') {
@@ -1529,32 +1551,49 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
         const px = parseInt(pxStr, 10);
         const py = parseInt(pyStr, 10);
         const pSize = newPixels[k].size;
-        
-        if (x >= px && x < px + pSize && y >= py && y < py + pSize) {
+        if (xAlign >= px && xAlign < px + pSize && yAlign >= py && yAlign < py + pSize) {
           delete newPixels[k];
           changed = true;
         }
       });
-      
       if (newPixels[key]) {
         delete newPixels[key];
         changed = true;
       }
-
       if (changed) {
         drawnPixelsRef.current = newPixels;
         setDrawnPixels(newPixels);
       }
     } else {
+      if (newPixels[key] && newPixels[key].color === drawColor && newPixels[key].size === size) return; // skip duplicate
       newPixels[key] = { color: drawColor, size };
       drawnPixelsRef.current = newPixels;
       setDrawnPixels(newPixels);
     }
   };
 
+  const paintPixelAt = (clientX: number, clientY: number) => {
+    const coords = getCanvasCoords(clientX, clientY);
+    const x = coords.x;
+    const y = coords.y;
+    if (x < 0 || x >= 640 || y < 0 || y >= 480) return;
+
+    const prev = lastPaintPosRef.current;
+    if (prev) {
+      paintLineBetween(prev.x, prev.y, x, y);
+    } else {
+      const size = pixelSize;
+      const xAlign = Math.floor(x / size) * size;
+      const yAlign = Math.floor(y / size) * size;
+      placePixel(xAlign, yAlign, size);
+    }
+    lastPaintPosRef.current = { x, y };
+  };
+
   const handleDrawStart = (e: React.MouseEvent) => {
     e.stopPropagation();
     isPaintingRef.current = true;
+    lastPaintPosRef.current = null;
     paintPixelAt(e.clientX, e.clientY);
   };
 
@@ -1571,6 +1610,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
   const handleDrawTouchStart = (e: React.TouchEvent) => {
     e.stopPropagation();
     isPaintingRef.current = true;
+    lastPaintPosRef.current = null;
     if (e.touches[0]) {
       paintPixelAt(e.touches[0].clientX, e.touches[0].clientY);
     }
