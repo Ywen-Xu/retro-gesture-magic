@@ -508,23 +508,36 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
     const landmarksList = results.multiHandLandmarks;
     setTrackingConfidence(landmarksList.length > 0 ? 0.95 : 0);
 
-    // Helper functions for checking finger open vectors using highly robust 2D distance projection metrics
+    // Helper: detect extended fingers using joint angles (works for all palm orientations)
     const checkHandOpen = (landmarks: any[]) => {
-      const wrist = landmarks[0];
-      const tips = [8, 12, 16, 20];
-      const bases = [5, 9, 13, 17]; // MCP (knuckle) joints
+      // Landmark indices for 4 fingers: index, middle, ring, pinky
+      // Each finger: MCP, PIP, DIP, TIP (4 joints apart)
+      const mcpIndices = [5, 9, 13, 17];
+      const pipIndices = [6, 10, 14, 18];
+      const tipIndices = [8, 12, 16, 20];
       let openCount = 0;
 
       for (let i = 0; i < 4; i++) {
-        const t = landmarks[tips[i]];
-        const b = landmarks[bases[i]];
-        if (!t || !b) continue;
-        
-        // Calculate stable 2D Euclidean distance in screen space
-        const dTip = Math.hypot(t.x - wrist.x, t.y - wrist.y);
-        const dBase = Math.hypot(b.x - wrist.x, b.y - wrist.y);
-        
-        if (dTip > dBase * 1.15) {
+        const mcp = landmarks[mcpIndices[i]];
+        const pip = landmarks[pipIndices[i]];
+        const tip = landmarks[tipIndices[i]];
+        if (!mcp || !pip || !tip) continue;
+
+        // Vector from MCP to PIP (first segment)
+        const dx1 = pip.x - mcp.x;
+        const dy1 = pip.y - mcp.y;
+        // Vector from PIP to TIP (second segment)
+        const dx2 = tip.x - pip.x;
+        const dy2 = tip.y - pip.y;
+
+        const len1 = Math.hypot(dx1, dy1);
+        const len2 = Math.hypot(dx2, dy2);
+        if (len1 < 0.001 || len2 < 0.001) continue;
+
+        // Cosine of the angle between the two segments
+        const cosAngle = (dx1 * dx2 + dy1 * dy2) / (len1 * len2);
+        // cosAngle > 0.4 means angle < ~66° → finger is relatively straight → "open"
+        if (cosAngle > 0.4) {
           openCount++;
         }
       }
@@ -782,20 +795,23 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
         const openCount = checkHandOpen(hand);
         if (openCount !== 1) return;
 
-        // Find which fingertip is extended
-        const tips = [8, 12, 16, 20]; // index, middle, ring, pinky
-        const bases = [5, 9, 13, 17];
-        const wrist = hand[0];
+        // Find which fingertip is extended (using joint-angle method)
+        const mcpIdx = [5, 9, 13, 17];
+        const pipIdx = [6, 10, 14, 18];
+        const tipIdx = [8, 12, 16, 20];
         let fingertip: any = null;
 
         for (let i = 0; i < 4; i++) {
-          const t = hand[tips[i]];
-          const b = hand[bases[i]];
-          if (!t || !b) continue;
-          const dTip = Math.hypot(t.x - wrist.x, t.y - wrist.y);
-          const dBase = Math.hypot(b.x - wrist.x, b.y - wrist.y);
-          if (dTip > dBase * 1.15) {
-            fingertip = t;
+          const mcp = hand[mcpIdx[i]];
+          const pip = hand[pipIdx[i]];
+          const tip = hand[tipIdx[i]];
+          if (!mcp || !pip || !tip) continue;
+          const dx1 = pip.x - mcp.x, dy1 = pip.y - mcp.y;
+          const dx2 = tip.x - pip.x, dy2 = tip.y - pip.y;
+          const l1 = Math.hypot(dx1, dy1), l2 = Math.hypot(dx2, dy2);
+          if (l1 < 0.001 || l2 < 0.001) continue;
+          if ((dx1 * dx2 + dy1 * dy2) / (l1 * l2) > 0.4) {
+            fingertip = tip;
             break;
           }
         }
