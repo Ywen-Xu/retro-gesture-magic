@@ -151,8 +151,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
   const [trackingConfidence, setTrackingConfidence] = useState<number>(0);
   const [activeGesture, setActiveGesture] = useState<'heart' | 'explosion' | 'none'>('none');
   const [scrambleProgress, setScrambleProgress] = useState(0);
-  const [strobeActive, setStrobeActive] = useState(false);
-  
+
   // Drawing Canvas States
   const [isDrawMode, setIsDrawMode] = useState(false);
   const [drawColor, setDrawColor] = useState('#ff00ff');
@@ -916,10 +915,6 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
       synth.playExplosionEffect();
     }
 
-    // Trigger visual screen white strobe jitter!
-    setStrobeActive(true);
-    setTimeout(() => setStrobeActive(false), 200);
-
     const originX = (1 - normalizedX) * canvas.width;
     const originY = normalizedY * canvas.height;
 
@@ -959,10 +954,6 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
     if (!sfxMutedRef.current) {
       synth.playExplosionEffect();
     }
-
-    // Trigger visual screen white strobing & shaky motions
-    setStrobeActive(true);
-    setTimeout(() => setStrobeActive(false), 240);
 
     // Map mirrored coordinate
     const originX = (1 - normalizedX) * canvas.width;
@@ -1997,9 +1988,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
     >
       {/* LEFT: Classic webcam layout framed nicely like Y2K beauty software with neon borders */}
       <div 
-        className={`relative flex flex-col bg-[#1a052e]/95 border-4 border-[#ff00ff] rounded-3xl p-5 w-full md:w-[680px] shrink-0 shadow-[0_0_40px_rgba(255,0,255,0.2)] transition-all duration-300 ${
-          strobeActive ? 'scale-[1.01] border-[#00ffff] shadow-[0_0_45px_rgba(0,255,255,0.4)]' : ''
-        }`}
+        className="relative flex flex-col bg-[#1a052e]/95 border-4 border-[#ff00ff] rounded-3xl p-5 w-full md:w-[680px] shrink-0 shadow-[0_0_40px_rgba(255,0,255,0.2)] transition-all duration-300"
         style={{
           boxShadow: '0 20px 50px rgba(0, 0, 0, 0.9), inset 0 2px 0 rgba(255, 0, 255, 0.2)'
         }}
@@ -2068,8 +2057,6 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
           
           {/* Scanline highlighter laser active */}
           <div className="absolute w-full h-[2px] bg-[#00ffff]/40 top-0 shadow-[0_0_10px_#00ffff] pointer-events-none z-20" style={{ animation: 'scanline 4s linear infinite' }} />
-
-          {/* White flash overlay removed — border pulse instead */}
 
           {/* WATERMARK BACKGROUND IN TEXT DECORATION */}
           <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none select-none">
