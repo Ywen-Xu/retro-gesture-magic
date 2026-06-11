@@ -86,7 +86,15 @@ const getFilterCSSValue = (filter: RetroFilterType, intensity: number) => {
 export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: CameraFilterViewProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  
+
+  // ── Mobile detection ──
+  const isMobile = useMemo(() => {
+    if (typeof navigator === 'undefined') return false;
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
+  }, []);
+  const MAX_PARTICLES = isMobile ? 80 : 250;
+  const MP_SKIP_FRAMES = 4; // throttle MediaPipe to ~8fps (30fps / 4 ≈ 7.5)
+
   // App States
   const [cameraActive, setCameraActive] = useState(false);
   const [showHowTo, setShowHowTo] = useState(true);
@@ -168,7 +176,8 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
   const cameraHelperRef = useRef<any>(null);
   const mediaPipeHandsRef = useRef<any>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  
+  const mpFrameRef = useRef(0); // MediaPipe frame counter for throttling
+
   // Memoize isolated FaceMesh loader page as a blob URL.
   // This isolates FaceMesh's Emscripten/WASM runtime inside its own window, completely resolving conflicts with Hands.
   const iframeSrc = useMemo(() => {
@@ -416,12 +425,14 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
           const CameraClass = (window as any).Camera;
           cameraHelperRef.current = new CameraClass(videoRef.current, {
             onFrame: async () => {
+              // Throttle: only process every 4th frame ≈ 8fps detection
+              mpFrameRef.current++;
+              if (mpFrameRef.current % MP_SKIP_FRAMES !== 0) return;
+
               if (videoRef.current && cameraActiveRef.current) {
                 try {
-                  // Send to main thread hands tracker
                   await mediaPipeHandsRef.current.send({ image: videoRef.current });
 
-                  // Send to background iframe face tracker using high-performance ImageBitmap transfer
                   if (iframeRef.current && videoRef.current.readyState >= 2) {
                     createImageBitmap(videoRef.current).then((imageBitmap) => {
                       iframeRef.current?.contentWindow?.postMessage(
@@ -429,9 +440,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
                         '*',
                         [imageBitmap]
                       );
-                    }).catch(() => {
-                      // Ignore any temporary frame capture errors
-                    });
+                    }).catch(() => {});
                   }
                 } catch (e) {
                   console.error('Error running MediaPipe frames:', e);
@@ -1336,6 +1345,10 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
   // Rendering routine for Canvas Particle engine (explosion + trails)
   const drawParticleEngine = (ctx: CanvasRenderingContext2D) => {
     particlesRef.current = particlesRef.current.filter(p => p.life > 0);
+    // Hard cap to prevent runaway GPU load (mobile: 80, desktop: 250)
+    if (particlesRef.current.length > MAX_PARTICLES) {
+      particlesRef.current = particlesRef.current.slice(-MAX_PARTICLES);
+    }
 
     particlesRef.current.forEach(p => {
       // Custom physics for 'sparkle' bubbles (sway back and forth, move upwards)
@@ -1508,6 +1521,18 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
 
   const isPaintingRef = useRef(false);
   const lastPaintPosRef = useRef<{ x: number; y: number } | null>(null);
+  const paintFlushRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Batch React state sync — avoids per-pixel re-renders
+  const flushNow = () => {
+    if (paintFlushRef.current) { clearTimeout(paintFlushRef.current); paintFlushRef.current = null; }
+    setDrawnPixels({ ...drawnPixelsRef.current });
+  };
+  const flushLater = () => {
+    if (!paintFlushRef.current) {
+      paintFlushRef.current = setTimeout(() => { paintFlushRef.current = null; flushNow(); }, 50);
+    }
+  };
 
   // Bresenham line interpolation to fill gaps between fast mouse moves
   const paintLineBetween = (fromX: number, fromY: number, toX: number, toY: number) => {
@@ -1562,13 +1587,13 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
       }
       if (changed) {
         drawnPixelsRef.current = newPixels;
-        setDrawnPixels(newPixels);
+        flushLater();
       }
     } else {
-      if (newPixels[key] && newPixels[key].color === drawColor && newPixels[key].size === size) return; // skip duplicate
+      if (newPixels[key] && newPixels[key].color === drawColor && newPixels[key].size === size) return;
       newPixels[key] = { color: drawColor, size };
       drawnPixelsRef.current = newPixels;
-      setDrawnPixels(newPixels);
+      flushLater();
     }
   };
 
@@ -1605,6 +1630,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
 
   const handleDrawEnd = () => {
     isPaintingRef.current = false;
+    flushNow();
   };
 
   const handleDrawTouchStart = (e: React.TouchEvent) => {
@@ -2708,7 +2734,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
                 <button
                   onClick={() => {
                     drawnPixelsRef.current = {};
-                    setDrawnPixels({});
+                    flushNow();
                   }}
                   className="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition underline cursor-pointer"
                   title="清空畫布上的塗鴉"
@@ -2775,7 +2801,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
                       <button
                         onClick={() => {
                           drawnPixelsRef.current = {};
-                          setDrawnPixels({});
+                          flushNow();
                         }}
                         className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-black border border-red-500/40 bg-red-950/30 text-red-400 hover:bg-red-600 hover:text-white hover:border-red-400 transition-all cursor-pointer active:scale-90"
                         title="清除全部像素畫"
