@@ -22,7 +22,14 @@
       "Bash(npx --no-install vite build)",
       "Bash(git push *)",
       "Bash(git rm *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git revert *)",
+      "Bash(git stash *)",
+      "Bash(curl -s https://ywen-xu.github.io/retro-gesture-magic/)",
+      "Bash(git reset *)",
+      "Bash(git checkout *)",
+      "PowerShell(Select-String -Path \"src/components/CameraFilterView.tsx\" -Pattern \"Take snap|setSnapshotPreviewUrl|Triggers final\" | ForEach-Object { \"$\\($_.LineNumber\\): $\\($_.Line.Trim\\(\\)\\)\" })",
+      "Bash(git restore *)"
     ]
   }
 }

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+﻿import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Camera, Music, Play, Square, Sparkles, Volume2, VolumeX, Heart, Trash2, CameraOff, Shuffle, RotateCcw, Image as ImageIcon, HelpCircle, Flame, Disc } from 'lucide-react';
 import { RetroFilterType, Particle, Y2KSticker, SparkleEdge } from '../types';
 import { RetroDiscoSynth } from '../utils/RetroDiscoSynth';
@@ -124,7 +124,8 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
   const STILL_DURATION_MS = 1500;        // 1.5s still to trigger
   const AUTO_COOLDOWN_MS = 3000;         // 3s between captures
   const [tempoMultiplier, setTempoMultiplier] = useState(1.0);
-  const [snapshotPreviewUrl, setSnapshotPreviewUrl] = useState<string | null>(null);
+  const [snapshotPreviewUrls, setSnapshotPreviewUrls] = useState<string[]>([]);
+  const burstTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Special Interactive Effects states
   const [activeEffectStyle, setActiveEffectStyle] = useState<'retro_stars' | 'heart_bubbles' | 'love_balloon' | 'finger_diamond'>('retro_stars');
@@ -886,7 +887,7 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
           } else if ((now - stillSinceRef.current) >= STILL_DURATION_MS && (now - lastAutoTimeRef.current) >= AUTO_COOLDOWN_MS) {
             lastAutoTimeRef.current = now;
             stillSinceRef.current = 0;
-            takeSnapshot(); // trigger the existing snapshot function
+            takeBurst();
           }
         } else {
           stillSinceRef.current = 0; // moved too much, reset timer
@@ -1863,242 +1864,105 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
     }
   };
 
-  // Take snap photo screenshot
-  const takeSnapshot = () => {
-    if (!canvasRef.current) return;
-    
-    // Play camera shutter sound
+  // --- CAPTURE / BURST / SNAPSHOT helpers (inserted via splice) ---
+
+  // Shared core: render current canvas state onto an offscreen canvas and return data URL
+  const captureFrame = (): string | null => {
+    if (!canvasRef.current) return null;
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.18);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.20);
-    } catch (e) {}
+      const c = document.createElement('canvas'); c.width = 640; c.height = 480;
+      const ctx = c.getContext('2d'); if (!ctx) return null;
+      ctx.filter = getFilterCSSValue(selectedFilter, filterIntensity);
+      ctx.drawImage(canvasRef.current, 0, 0);
+      ctx.filter = 'none';
 
-    // 1. Create a temporary canvas matching original resolution
-    const captureCanvas = document.createElement('canvas');
-    captureCanvas.width = 640;
-    captureCanvas.height = 480;
-    const exportCtx = captureCanvas.getContext('2d');
-    if (!exportCtx) return;
-
-    // 2. Set identical dynamic color adjustments on high-fidelity context before we draw feed
-    exportCtx.filter = getFilterCSSValue(selectedFilter, filterIntensity);
-
-    // 3. Render active canvas snapshot frame onto capture canvas (this carries feed, vignettes, particles, hand hearts)
-    exportCtx.drawImage(canvasRef.current, 0, 0);
-
-    // 4. Force reset context filters to avoid distorting borders or sticker colors
-    exportCtx.filter = 'none';
-
-    // 5. Build chosen sticker / frame borders on top of the graphics layer
-    if (selectedFrame !== 'none') {
-      let borderColor = '#ff00ff';
-      let topBg = '#ff00ff';
-      let textColor = '#ffffff';
-      let botBg = '#1a052e';
-      let bannerBorderColor = '#ff00ff';
-      let labelLeftTop = '✧ 傷感・愛 ✧';
-      let labelRightTop = '🌸 莣憂愺 🌸';
-      let labelLeftBot = 'じ☆ve 伱湜涐の蓶①';
-      let labelRightBot = '★ Y2K PARTY ★';
-
-      if (selectedFrame === 'cyber-star-frame') {
-        borderColor = '#00ffff';
-        topBg = '#00ffff';
-        textColor = '#000000';
-        botBg = '#0d0216';
-        bannerBorderColor = '#00ffff';
-        labelLeftTop = '⚡ HYPER CYBER ⚡';
-        labelRightTop = '✦ DISCO PARTY ✦';
-        labelLeftBot = '✖ 非主流・強勢回歸 ✖';
-        labelRightBot = '2007 // 2026';
-      } else if (selectedFrame === 'emo-sad-frame') {
-        borderColor = '#ec4899';
-        topBg = '#db2777';
-        textColor = '#ffffff';
-        botBg = '#1a052e';
-        bannerBorderColor = '#ec4899';
-        labelLeftTop = '单、因尒而蓅';
-        labelRightTop = '💔 SAD BOY EMO';
-        labelLeftBot = 'ら 傷感。爺 ゞ';
-        labelRightBot = '縸誮亦泠 ╰☆╮';
+      if (selectedFrame !== 'none') {
+        let bc = '#ff00ff', tb = '#ff00ff', tc = '#ffffff', bb = '#1a052e', bbc = '#ff00ff';
+        let lt = '✧ 傷感・愛 ✧', rt = '🌸 莣憂葺 🌸';
+        let lb = 'じ☆ve 伱湜浐の蓶①', rb = '★ Y2K PARTY ★';
+        if (selectedFrame === 'cyber-star-frame') { bc = tb = '#00ffff'; tc = '#000000'; bb = '#0d0216'; bbc = '#00ffff'; lt = '⚡ HYPER CYBER ⚡'; rt = '✦ DISCO PARTY ✦'; lb = '✖ 非主流・強勢回湸 ✖'; rb = '2007 // 2026'; }
+        else if (selectedFrame === 'emo-sad-frame') { bc = '#ec4899'; tb = '#db2777'; tc = '#ffffff'; bb = '#1a052e'; bbc = '#ec4899'; lt = '单、因尒而蓅'; rt = '💔 SAD BOY EMO'; lb = 'ら 傷感。爺 ゞ'; rb = '縸鮮亦泠 ╰☆╯'; }
+        ctx.save(); ctx.strokeStyle = bc; ctx.lineWidth = 14; ctx.strokeRect(7, 7, 626, 466);
+        ctx.fillStyle = tb; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(24, 20, 592, 24, 4); else ctx.rect(24, 20, 592, 24); ctx.fill();
+        if (selectedFrame !== 'dreamy-pink-frame') { ctx.strokeStyle = bc; ctx.lineWidth = 1.5; ctx.stroke(); }
+        ctx.fillStyle = tc; ctx.font = 'bold 11px "Microsoft JhengHei", sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillText(lt, 32, 32); ctx.textAlign = 'right'; ctx.fillText(rt, 608, 32);
+        ctx.fillStyle = bb; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(24, 436, 592, 24, 4); else ctx.rect(24, 436, 592, 24); ctx.fill();
+        ctx.strokeStyle = bbc; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.fillStyle = selectedFrame === 'cyber-star-frame' ? '#00ffff' : (selectedFrame === 'emo-sad-frame' ? '#f472b6' : '#ffffff');
+        ctx.font = 'bold 11px "Microsoft JhengHei", sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(lb, 32, 448); ctx.textAlign = 'right'; ctx.fillText(rb, 608, 448); ctx.restore();
       }
 
-      exportCtx.save();
-      // Outer border frame line
-      exportCtx.strokeStyle = borderColor;
-      exportCtx.lineWidth = 14;
-      exportCtx.strokeRect(7, 7, 640 - 14, 480 - 14);
-
-      // Top slogan design bar
-      exportCtx.fillStyle = topBg;
-      exportCtx.beginPath();
-      if (exportCtx.roundRect) {
-        exportCtx.roundRect(24, 20, 640 - 48, 24, 4);
-      } else {
-        exportCtx.rect(24, 20, 640 - 48, 24);
-      }
-      exportCtx.fill();
-      if (selectedFrame !== 'dreamy-pink-frame') {
-        exportCtx.strokeStyle = borderColor;
-        exportCtx.lineWidth = 1.5;
-        exportCtx.stroke();
-      }
-
-      // Slogan Texts inside banner
-      exportCtx.fillStyle = textColor;
-      // standard fallback fonts used
-      exportCtx.font = 'bold 11px "Microsoft JhengHei", sans-serif';
-      exportCtx.textAlign = 'left';
-      exportCtx.textBaseline = 'middle';
-      exportCtx.fillText(labelLeftTop, 32, 32);
-
-      exportCtx.textAlign = 'right';
-      exportCtx.fillText(labelRightTop, 640 - 32, 32);
-
-      // Bottom design bar
-      exportCtx.fillStyle = botBg;
-      exportCtx.beginPath();
-      if (exportCtx.roundRect) {
-        exportCtx.roundRect(24, 480 - 44, 640 - 48, 24, 4);
-      } else {
-        exportCtx.rect(24, 480 - 44, 640 - 48, 24);
-      }
-      exportCtx.fill();
-      exportCtx.strokeStyle = bannerBorderColor;
-      exportCtx.lineWidth = 1.5;
-      exportCtx.stroke();
-
-      // Bottom slogan texts
-      exportCtx.fillStyle = selectedFrame === 'cyber-star-frame' ? '#00ffff' : (selectedFrame === 'emo-sad-frame' ? '#f472b6' : '#ffffff');
-      exportCtx.font = 'bold 11px "Microsoft JhengHei", sans-serif';
-      exportCtx.textAlign = 'left';
-      exportCtx.textBaseline = 'middle';
-      exportCtx.fillText(labelLeftBot, 32, 480 - 32);
-
-      exportCtx.textAlign = 'right';
-      exportCtx.fillText(labelRightBot, 640 - 32, 480 - 32);
-
-      exportCtx.restore();
-    }
-
-    // 6. Draw all active user-placed stickers onto compilation context
-    stickers.forEach(sticker => {
-      exportCtx.save();
-      // Translate, rotate, and scale relative to canvas coordinates
-      exportCtx.translate(sticker.x, sticker.y);
-      exportCtx.rotate((sticker.rotation * Math.PI) / 180);
-      exportCtx.scale(sticker.scale, sticker.scale);
-
-      if (sticker.text) {
-        // Render text label bubble
-        const text = sticker.text;
-        exportCtx.font = 'bold 13px "Microsoft JhengHei", "ZCOOL XiaoWei", sans-serif';
-        const textWidth = exportCtx.measureText(text).width;
-        
-        const paddingX = 10;
-        const paddingY = 5;
-        const boxWidth = textWidth + paddingX * 2;
-        const boxHeight = 16 + paddingY * 2;
-        
-        exportCtx.fillStyle = '#1a052e';
-        exportCtx.strokeStyle = '#ff00ff';
-        exportCtx.lineWidth = 1.5;
-        
-        const rx = -boxWidth / 2;
-        const ry = -boxHeight / 2;
-        
-        exportCtx.beginPath();
-        if (exportCtx.roundRect) {
-          exportCtx.roundRect(rx, ry, boxWidth, boxHeight, 4);
+      stickers.forEach(s => {
+        ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rotation * Math.PI / 180); ctx.scale(s.scale, s.scale);
+        if (s.text) {
+          ctx.font = 'bold 13px "Microsoft JhengHei", "ZCOOL XiaoWei", sans-serif';
+          const tw = ctx.measureText(s.text).width, bw = tw + 20, bh = 26;
+          ctx.fillStyle = '#1a052e'; ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 1.5;
+          ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-bw / 2, -bh / 2, bw, bh, 4); else ctx.rect(-bw / 2, -bh / 2, bw, bh);
+          ctx.fill(); ctx.stroke();
+          ctx.fillStyle = '#00ffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.shadowBlur = 0; ctx.shadowColor = '#00ffff'; ctx.fillText(s.text, 0, 0);
         } else {
-          exportCtx.rect(rx, ry, boxWidth, boxHeight);
+          ctx.font = '40px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(s.emoji, 0, 0);
         }
-        exportCtx.fill();
-        exportCtx.stroke();
-        
-        exportCtx.fillStyle = '#00ffff';
-        exportCtx.textAlign = 'center';
-        exportCtx.textBaseline = 'middle';
-        exportCtx.shadowBlur = 4;
-        exportCtx.shadowColor = '#00ffff';
-        exportCtx.fillText(text, 0, 0);
-      } else {
-        // Render large Emoji icon
-        const emoji = sticker.emoji;
-        exportCtx.font = '40px sans-serif';
-        exportCtx.textAlign = 'center';
-        exportCtx.textBaseline = 'middle';
-        exportCtx.fillText(emoji, 0, 0);
-      }
+        ctx.restore();
+      });
 
-      exportCtx.restore();
-    });
+      Object.entries(drawnPixelsRef.current).forEach(([k, v]) => {
+        const p = v as { color: string; size: number }; const [xs, ys] = k.split(',');
+        ctx.fillStyle = p.color; ctx.fillRect(+xs, +ys, p.size, p.size);
+      });
 
-    // 6.5. Render user's custom pixel art drawing on top of everything
-    exportCtx.save();
-    Object.entries(drawnPixelsRef.current).forEach(([key, val]) => {
-      const pixel = val as { color: string; size: number };
-      const [xStr, yStr] = key.split(',');
-      const px = parseInt(xStr, 10);
-      const py = parseInt(yStr, 10);
-      exportCtx.fillStyle = pixel.color;
-      exportCtx.fillRect(px, py, pixel.size, pixel.size);
-    });
-    exportCtx.restore();
-
-    // 7. Store the final composited image as data URL of PNG
-    const dataUrl = captureCanvas.toDataURL('image/png');
-    setSnapshotPreviewUrl(dataUrl);
+      return c.toDataURL('image/png');
+    } catch (e) { return null; }
   };
 
-  // Triggers final actual file system saving upon preview confirmation with Directory path configurations
+  // Burst mode: capture 5 frames at 300ms intervals
+  const takeBurst = () => {
+    if (burstTimerRef.current) { clearInterval(burstTimerRef.current); burstTimerRef.current = null; }
+    const urls: string[] = []; let count = 0;
+    const snap = () => { try { const a = new (window.AudioContext || (window as any).webkitAudioContext)(); const o = a.createOscillator(), g = a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.setValueAtTime(800, a.currentTime); o.frequency.exponentialRampToValueAtTime(10, a.currentTime + 0.1); g.gain.setValueAtTime(0.3, a.currentTime); g.gain.linearRampToValueAtTime(0.01, a.currentTime + 0.12); o.start(); o.stop(a.currentTime + 0.15); } catch (e) {} };
+    burstTimerRef.current = setInterval(() => {
+      const u = captureFrame(); if (u) { urls.push(u); snap(); }
+      count++; if (count >= 5) { clearInterval(burstTimerRef.current!); burstTimerRef.current = null; setSnapshotPreviewUrls([...urls]); }
+    }, 300);
+  };
+
+  // Single shot (manual button)
+  const takeSnapshot = () => {
+    const url = captureFrame();
+    if (!url) return;
+    try { const a = new (window.AudioContext || (window as any).webkitAudioContext)(); const o = a.createOscillator(), g = a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.setValueAtTime(800, a.currentTime); o.frequency.exponentialRampToValueAtTime(10, a.currentTime + 0.15); g.gain.setValueAtTime(0.4, a.currentTime); g.gain.linearRampToValueAtTime(0.01, a.currentTime + 0.18); o.start(); o.stop(a.currentTime + 0.2); } catch (e) {}
+    setSnapshotPreviewUrls([url]);
+  };
+
+
+  // Batch save: download all captured photos
   const confirmSaveSnapshot = async () => {
-    if (!snapshotPreviewUrl) return;
+    if (snapshotPreviewUrls.length === 0) return;
     const safeFolderLabel = virtualFolderSuffix ? virtualFolderSuffix.replace(/[\/\\:]/g, '-') : 'Y2K_Album';
-    const filename = `[${safeFolderLabel}]_y2k_photo_${Date.now()}.png`;
+    const ts = Date.now();
 
-    try {
-      if (directoryHandle) {
-        // Query and verify storage permission
-        const queryOpts = { mode: 'readwrite' as const };
-        if (await directoryHandle.queryPermission(queryOpts) !== 'granted') {
-          const requestResult = await directoryHandle.requestPermission(queryOpts);
-          if (requestResult !== 'granted') {
-            throw new Error('Directory access permission denied.');
-          }
+    for (let i = 0; i < snapshotPreviewUrls.length; i++) {
+      const url = snapshotPreviewUrls[i];
+      const filename = `[${safeFolderLabel}]_burst${i + 1}_${ts}.png`;
+      try {
+        if (directoryHandle) {
+          const q = { mode: 'readwrite' as const };
+          if (await directoryHandle.queryPermission(q) !== 'granted') await directoryHandle.requestPermission(q);
+          const fh = await directoryHandle.getFileHandle(filename, { create: true });
+          const w = await fh.createWritable();
+          const r = await fetch(url); await w.write(await r.blob()); await w.close();
+        } else {
+          const a = document.createElement('a'); a.download = filename; a.href = url; a.click();
+          await new Promise(r => setTimeout(r, 150));
         }
-        const fileHandle = await directoryHandle.getFileHandle(filename, { create: true });
-        const writable = await fileHandle.createWritable();
-        
-        // Convert data URL to blob
-        const res = await fetch(snapshotPreviewUrl);
-        const blob = await res.blob();
-        await writable.write(blob);
-        await writable.close();
-        
-        alert(`💾 保存成功！照片已自動儲存至您的預設本機路徑中：\n📂 ${directoryHandle.name}/${filename}`);
-        setSnapshotPreviewUrl(null);
-        return;
-      }
-    } catch (e) {
-      console.warn('Directory handle saving error, falling back to instant browser download:', e);
+      } catch (e) { console.warn('Save error:', e); }
     }
-
-    // Fallback regular browser download (always triggers download dialog with virtual prefix folder prefix!)
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = snapshotPreviewUrl;
-    link.click();
-    setSnapshotPreviewUrl(null);
+    if (directoryHandle) alert(`💾 已儲存 ${snapshotPreviewUrls.length} 張連拍照片至 ${directoryHandle.name}/`);
+    setSnapshotPreviewUrls([]);
   };
 
   return (
@@ -3078,61 +2942,46 @@ export function CameraFilterView({ synth, isMusicPlaying, setIsMusicPlaying }: C
       </div>
 
       {/* PHOTO SNAPSHOT PREVIEW MODAL */}
-      {snapshotPreviewUrl && (
+      {snapshotPreviewUrls.length > 0 && (
         <div className="fixed inset-0 bg-[#0d0216]/95 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1a052e] border-4 border-[#ff00ff] rounded-3xl p-6 max-w-xl w-full shadow-[0_0_50px_rgba(255,0,255,0.4)] relative flex flex-col items-center">
-            
-            {/* Decorative top header */}
+          <div className="bg-[#1a052e] border-4 border-[#ff00ff] rounded-3xl p-6 max-w-2xl w-full shadow-[0_0_50px_rgba(255,0,255,0.4)] relative flex flex-col items-center">
+
             <div className="w-full flex items-center justify-between border-b-2 border-[#ff00ff]/30 pb-3 mb-4">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#00ffff] animate-pulse" />
                 <span className="font-mono text-xs tracking-widest text-[#ff00ff] font-bold">
-                  ✧ PHOTO_PREVIEW_CONFIRM ✧
+                  ✧ BURST_PREVIEW ({snapshotPreviewUrls.length} 張) ✧
                 </span>
               </div>
-              <button 
-                onClick={() => setSnapshotPreviewUrl(null)}
-                className="text-[#ff00ff] hover:text-white transition font-mono font-bold text-xs cursor-pointer"
-              >
+              <button onClick={() => setSnapshotPreviewUrls([])} className="text-[#ff00ff] hover:text-white transition font-mono font-bold text-xs cursor-pointer">
                 [ ESC_RETAKE ]
               </button>
             </div>
 
-            <h3 
-              className="text-xl font-black text-center text-[#ff00ff] italic tracking-tight mb-4 uppercase animate-bounce"
-              style={{ fontFamily: '"ZCOOL KuaiLe", sans-serif', textShadow: '2px 2px 0px #00ffff' }}
-            >
-              ✦ 哇！你拍得太暃主流啦 ✦
+            <h3 className="text-lg font-black text-center text-[#ff00ff] italic tracking-tight mb-4 uppercase" style={{ fontFamily: '"ZCOOL KuaiLe", sans-serif', textShadow: '2px 2px 0px #00ffff' }}>
+              ✦ 連拍完成！選擇儲存或重拍 ✦
             </h3>
 
-            {/* Captured image display container */}
-            <div className="relative border-4 border-[#ff00ff] bg-black rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(255,0,255,0.3)] w-full max-w-md aspect-[4/3] mb-6">
-              {/* Soft scanlines and glows */}
-              <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.15)_50%)] bg-[length:100%_4px] opacity-20 z-10" />
-              <img 
-                src={snapshotPreviewUrl} 
-                alt="Y2K snapshot preview" 
-                className="w-full h-full object-cover"
-              />
+            {/* Image grid: up to 5 thumbnails */}
+            <div className="grid grid-cols-3 gap-2 w-full mb-4">
+              {snapshotPreviewUrls.map((url, i) => (
+                <div key={i} className="relative border-2 border-[#ff00ff]/40 bg-black rounded-lg overflow-hidden aspect-[4/3]">
+                  <div className="absolute top-1 left-1 bg-[#ff00ff] text-white text-[9px] font-black px-1 rounded z-10">{i + 1}</div>
+                  <img src={url} alt={`Burst ${i + 1}`} className="w-full h-full object-cover" />
+                </div>
+              ))}
             </div>
 
             <p className="text-xs text-stone-300 text-center max-w-sm mb-6 leading-relaxed">
-              這是你的專屬 Y2K 非主流大頭貼！確認保存會自動下載到你的電腦，不滿意可以點擊重新拍攝哦！
+              共 {snapshotPreviewUrls.length} 張連拍，點擊「批量儲存」一次下載全部
             </p>
 
-            {/* Action Buttons */}
             <div className="flex items-center justify-center gap-4 w-full">
-              <button
-                onClick={confirmSaveSnapshot}
-                className="flex-1 py-3 px-6 bg-[#ff00ff] hover:bg-white hover:text-[#1a052e] text-white font-black text-sm uppercase tracking-wider rounded-xl cursor-pointer shadow-lg transition-all flex items-center justify-center gap-2 border-2 border-white skew-x-[-6deg]"
-              >
-                💾 確認保存 (Save)
+              <button onClick={confirmSaveSnapshot} className="flex-1 py-3 px-6 bg-[#ff00ff] hover:bg-white hover:text-[#1a052e] text-white font-black text-sm uppercase tracking-wider rounded-xl cursor-pointer shadow-lg transition-all flex items-center justify-center gap-2 border-2 border-white skew-x-[-6deg]">
+                💾 批量儲存全部
               </button>
-              <button
-                onClick={() => setSnapshotPreviewUrl(null)}
-                className="flex-1 py-3 px-6 bg-transparent hover:bg-rose-500/10 text-[#ff00ff] hover:text-white border-2 border-[#ff00ff] hover:border-white font-black text-sm uppercase tracking-wider rounded-xl cursor-pointer transition-all flex items-center justify-center gap-2 skew-x-[-6deg]"
-              >
-                🔄 重新拍攝 (Retake)
+              <button onClick={() => setSnapshotPreviewUrls([])} className="flex-1 py-3 px-6 bg-transparent hover:bg-rose-500/10 text-[#ff00ff] hover:text-white border-2 border-[#ff00ff] hover:border-white font-black text-sm uppercase tracking-wider rounded-xl cursor-pointer transition-all flex items-center justify-center gap-2 skew-x-[-6deg]">
+                🔄 全部丟棄重拍
               </button>
             </div>
 
