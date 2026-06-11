@@ -1,11 +1,7 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @license CC-BY-NC-4.0
+ * Copyright (c) 2026 Ywen-Xu
+ * https://github.com/Ywen-Xu/retro-gesture-magic
  */
 
 import React, { useState, useMemo } from 'react';

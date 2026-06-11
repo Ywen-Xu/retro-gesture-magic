@@ -1,8 +1,10 @@
 {
-  "name": "react-example",
+  "name": "retro-gesture-magic",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "license": "CC-BY-NC-4.0",
+  "author": "Ywen-Xu",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
